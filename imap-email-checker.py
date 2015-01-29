@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 '''
 Usage:
-	./imap-email-checker --email=ACCOUNT_ADDRESS --imap=IMAP_SERVER_ADDRESS [(--notify=on | --notify=off)] [--pass=PASSWORD] [--delay=MIN]
+	./imap-email-checker --email=ACCOUNT_ADDRESS --imap=IMAP_SERVER_ADDRESS [(--notify=on | --notify=off)] [--pass=PASSWORD] [--time=MIN] [--debug]
 
 Options:
 	-h --help	show this screen
 	--email		e-mail address
 	--imap		server imap address
 	--pass		user's password
-	--delay		minutes between checks
+	--time		minutes between checks
 	--notify	enable/disable notify (uses libnotify). Default is on
+	--debug		enable debug (stdout)
 '''
 
 from docopt import docopt
@@ -34,8 +35,8 @@ if arguments['--pass']:
 else:
 	password = getpass.getpass()
 
-if arguments['--delay']:
-	min = arguments['--delay']
+if arguments['--time']:
+	min = arguments['--time']
 else:
 	min = 10	# 10 minutes delay between e-mail checks (default)
 
@@ -69,10 +70,11 @@ if __name__ == '__main__':
 			rv, data = M.status('INBOX', '(UNSEEN)')
 			if rv == 'OK' and len(data) == 1:
 				unseen = re.search('[0-9]+', data[0]).group(0)
-				print('[%s] %s unseen e-mail(s), next check in %d minutes.' %\
-						(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-							unseen,
-							min))
+				if arguments['--debug']:
+					print('[%s] %s unseen e-mail(s), next check in %d minutes.' %\
+							(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+								unseen,
+								min))
 			M.close()
 
 		M.logout()
