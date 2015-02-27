@@ -36,7 +36,7 @@ else:
 	password = getpass.getpass()
 
 if arguments['--time']:
-	min = arguments['--time']
+	min = eval(arguments['--time'])
 else:
 	min = 10	# 10 minutes delay between e-mail checks (default)
 
@@ -45,47 +45,60 @@ if arguments['--notify']:
 else:
 	notify = 'on'	# notification enable by default
 
+debug = arguments['--debug']
 
 WAIT = 60 * min
 
+def signal(message):
+	if notify == 'on':
+		pynotify.init('PyEmail')
+		notification = pynotify.Notification('PyEmail', message)
+		notification.show()
+
+
+def log(message):
+	if debug:
+		print(message)
+
+def error(message):
+	print('[Error]: {0}'.format(message))
 
 if __name__ == '__main__':
 	unseen = '0'
 
 	while True:
-		M = imaplib.IMAP4_SSL(EMAIL_IMAP_SERVER)
-
 		try:
+			M = imaplib.IMAP4_SSL(EMAIL_IMAP_SERVER)
+
 			rv, data = M.login(EMAIL_ACCOUNT, password)
-		except imaplib.IMAP4.error as err:
-			print('Login failed. %s' % (err))
-			sys.exit(1)
 
-		if rv != 'OK':
-			print('Login failed: %s' % (data[0]))
-			sys.exit(1)
-
-		rv, data = M.select('INBOX')
-		if rv == 'OK':
-			rv, data = M.status('INBOX', '(UNSEEN)')
-			if rv == 'OK' and len(data) == 1:
-				unseen = re.search('[0-9]+', data[0]).group(0)
-				if arguments['--debug']:
-					print('[%s] %s unseen e-mail(s), next check in %d minutes.' %\
+			rv, data = M.select('INBOX')
+			if rv == 'OK':
+				rv, data = M.status('INBOX', '(UNSEEN)')
+				if rv == 'OK' and len(data) == 1:
+					unseen = re.search('[0-9]+', data[0]).group(0)
+					log('[%s] %s unseen e-mail(s), next check in %d minutes.' %\
 							(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
 								unseen,
 								min))
-			M.close()
+					M.close()
 
-		M.logout()
+			M.logout()
 
-		if notify == 'on':
 			if unseen != '0':
-				pynotify.init('markup')
-				notification = pynotify.Notification('PyEmail',
-						'''
-						<b>{0}</b> Unreed e-mail(s)
-						'''.format(unseen))
-				notification.show()
+				signal('%s Unseen email(s)' % unseen)
+
+
+		except imaplib.IMAP4.error as err:
+			msg = '%s for user "%s" and imap server "%s"' % (err, EMAIL_ACCOUNT, EMAIL_IMAP_SERVER)
+			error(msg)
+			signal(msg)
+			sys.exit(1)
+
+		except Exception as e:
+			print(e)
+			signal('Error: {0}'.format(e.strerror))
+			if not 101 == e.errno:
+				sys.exit(1)
 
 		time.sleep(WAIT)
