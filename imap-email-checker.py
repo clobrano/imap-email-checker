@@ -20,6 +20,7 @@ import getpass	# portable password input
 import re		# regex library in order to extract unseen e-mails count
 import pynotify	# binding for libnotify
 import time
+from datetime import datetime
 
 # ==============================================
 # Get configuration values
@@ -51,6 +52,7 @@ WAIT = 60 * min
 
 def signal(message):
 	if notify == 'on':
+		message += ' {0}'.format(datetime.now())
 		pynotify.init('PyEmail')
 		notification = pynotify.Notification('PyEmail', message)
 		notification.show()
