@@ -68,27 +68,37 @@ def error(message):
 if __name__ == '__main__':
 	unseen = '0'
 
+	connected = False
+
 	while True:
 		try:
 			M = imaplib.IMAP4_SSL(EMAIL_IMAP_SERVER)
 
 			rv, data = M.login(EMAIL_ACCOUNT, password)
 
-			rv, data = M.select('INBOX')
-			if rv == 'OK':
-				rv, data = M.status('INBOX', '(UNSEEN)')
-				if rv == 'OK' and len(data) == 1:
-					unseen = re.search('[0-9]+', data[0]).group(0)
-					log('[%s] %s unseen e-mail(s), next check in %d minutes.' %\
-							(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-								unseen,
-								min))
-					M.close()
+			if 'OK' != rv:
+				log ('Could not connect to %s' % EMAIL_IMAP_SERVER)
 
-			M.logout()
+			elif not connected:
+				connected = True
+				log ('Connected')
+				signal ('Connected')
 
-			if unseen != '0':
-				signal('%s Unseen email(s)' % unseen)
+				rv, data = M.select('INBOX')
+				if rv == 'OK':
+					rv, data = M.status('INBOX', '(UNSEEN)')
+					if rv == 'OK' and len(data) == 1:
+						unseen = re.search('[0-9]+', data[0]).group(0)
+						log('[%s] %s unseen e-mail(s), next check in %d minutes.' %\
+								(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+									unseen,
+									min))
+						M.close()
+
+				M.logout()
+
+				if unseen != '0':
+					signal('%s Unseen email(s)' % unseen)
 
 
 		except imaplib.IMAP4.error as err:
@@ -104,3 +114,5 @@ if __name__ == '__main__':
 				sys.exit(1)
 
 		time.sleep(WAIT)
+	
+	signal ('Exiting')
