@@ -79,7 +79,6 @@ if __name__ == '__main__':
     while True:
         try:
             M = imaplib.IMAP4_SSL(EMAIL_IMAP_SERVER)
-
             rv, data = M.login(EMAIL_ACCOUNT, password)
 
             if 'OK' != rv:
@@ -101,6 +100,9 @@ if __name__ == '__main__':
                     M.close()
 
             M.logout()
+
+            if new_unseen == '0':
+                unseen = new_unseen
 
             if new_unseen != unseen:
                 signal('%s Unseen email(s)' % new_unseen)
