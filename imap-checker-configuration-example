@@ -1,0 +1,8 @@
+{
+    "email": "name.surname@company.com",
+    "server": "imap-server.com",
+    "password": "xxxx",
+    "time": "1",
+    "notify": "on",
+    "folders": ["INBOX", "Do not remove INBOX", "Another Folder"]
+}
