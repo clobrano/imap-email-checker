@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 '''
 Usage:
-	./imap-email-checker [--email=ACCOUNT_ADDRESS] [--imap=IMAP_SERVER_ADDRESS] [(--notify=on | --notify=off)] [--pass=PASSWORD] [--time=MIN] [--debug]
+	./imap-email-checker [--config=PATH] [--email=ACCOUNT_ADDRESS] [--imap=IMAP_SERVER_ADDRESS] [(--notify=on | --notify=off)] [--pass=PASSWORD] [--time=MIN] [--debug]
 
 Options:
-	-h --help	show this screen
-	--email		e-mail address
-	--imap		server imap address
-	--pass		user's password
-	--time		minutes between checks
-	--notify	enable/disable notify (uses libnotify). Default is on
-	--debug		enable debug (stdout)
+	-h --help	            Show this screen
+	--email=ACCOUNT_ADDRESS	    E-mail address
+	--imap=IMAP_SERVER_ADDRESS  Server imap address
+	--pass=PASSWORD		    User's password
+	--time=MIN		    Minutes between checks
+	--notify=on|off 	    Enable/disable notify (uses libnotify). Default is on
+        --debug		            Enable debug (stdout)
+        --config=PATH               Path to configuration file [default: ~/.imap-checker]
 '''
 
 from docopt import docopt
@@ -26,21 +27,61 @@ import os
 import socket
 
 # ==============================================
+# Functions
+# ==============================================
+def get_configuration(configuration_fullpath):
+    try:
+        with open(configuration_fullpath, 'r') as c:
+            configuration_str = c.read()
+        configuration = json.loads(configuration_str)
+    except IOError as e:
+        configuration = {}
+        print ("Could not find configuration file: {}".format(e))
+    return configuration
+
+
+def signal(message):
+    if notify == 'on':
+        pynotify.init('PyEmail')
+        notification = pynotify.Notification('PyEmail', message)
+        notification.show()
+
+
+def log(message):
+    if debug:
+        print('[{time}] {message}'.format(
+            time=format_time_hms(),
+            message=message))
+
+
+def error(message):
+    print('[Error]: {0}'.format(message))
+
+
+def format_time_hms ():
+    time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+    return time_str.split('.')[0]
+
+
+def check_folder (connection, folder):
+    rv, data = connection.select(folder)
+    if rv == 'OK':
+        rv, data = connection.status(folder, '(UNSEEN)')
+        if rv == 'OK' and len(data) == 1:
+            return int(re.search('[0-9]+', data[0]).group(0))
+        connection.close()
+    return 0
+
+
+# ==============================================
 # Get configuration values
 # ==============================================
-
-HOME = os.path.expanduser('~')
-CONFIG = os.path.join (HOME, '.imap-checker');
-
-try:
-    with open(CONFIG, 'r') as c:
-        configuration_str = c.read()
-    configuration = json.loads(configuration_str)
-except IOError as e:
-    configuration = {}
-    print ("Could not find configuration file: {}".format(e))
-
 arguments = docopt(__doc__, version='IMAP E-mail checker')
+if arguments['--config']:
+    CONFIG = os.path.expanduser(arguments['--config'])
+else:
+    CONFIG = os.path.expanduser(os.path.join ('~', '.imap-checker'))
+configuration = get_configuration(CONFIG);
 
 if arguments['--email']:
     EMAIL_ACCOUNT = arguments['--email']
@@ -83,37 +124,6 @@ else:
 debug = arguments['--debug']
 
 WAIT = 60 * min
-
-def signal(message):
-    if notify == 'on':
-        pynotify.init('PyEmail')
-        notification = pynotify.Notification('PyEmail', message)
-        notification.show()
-
-
-def log(message):
-    if debug:
-        print('[{time}] {message}'.format(
-            time=format_time_hms(),
-            message=message))
-
-def error(message):
-    print('[Error]: {0}'.format(message))
-
-
-def format_time_hms ():
-    time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
-    return time_str.split('.')[0]
-
-
-def check_folder (connection, folder):
-    rv, data = connection.select(folder)
-    if rv == 'OK':
-        rv, data = connection.status(folder, '(UNSEEN)')
-        if rv == 'OK' and len(data) == 1:
-            return int(re.search('[0-9]+', data[0]).group(0))
-        connection.close()
-    return 0
 
 
 if __name__ == '__main__':
