@@ -23,6 +23,7 @@ import time
 from datetime import datetime
 import json
 import os
+import socket
 
 # ==============================================
 # Get configuration values
@@ -156,8 +157,6 @@ if __name__ == '__main__':
                 signal('{num} Unseen email(s) in [{updated_folders}]'\
                         .format(num=new_unseen, updated_folders=updated_folders))
                 unseen = new_unseen
-            else:
-                log ("Unread messages but already notified");
 
 
         except imaplib.IMAP4.error as err:
@@ -165,6 +164,9 @@ if __name__ == '__main__':
             error(msg)
             signal(msg)
             sys.exit(1)
+
+        except (socket.timeout, socket.gaierror):
+            pass
 
         time.sleep(WAIT)
 
