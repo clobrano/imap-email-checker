@@ -99,7 +99,9 @@ else:
     log ("No imap server defined. Exiting...");
     sys.exit(1)
 
-# TODO better if we encrypt password, but at the moment you can provide it securely from command line with getpass
+#TODO better if we encrypt password,                                           \
+    but at the moment you can provide it securely from command line with       \
+        getpass
 if arguments['--pass']:
     password = arguments['--pass']
 elif configuration['password']:
@@ -144,7 +146,7 @@ if __name__ == '__main__':
                 log ('Connected')
 
             new_unseen = 0
-            updated_folders = ''
+            updated_folders = []
 
             for folder in configuration['folders']:
                 folder_unseen = check_folder (M, folder)
@@ -153,10 +155,7 @@ if __name__ == '__main__':
 
                 if folder_unseen > 0:
                     new_unseen += folder_unseen
-                    if updated_folders == '':
-                        updated_folders += folder
-                    else:
-                        updated_folders += ', ' + folder
+                    updated_folders.append(folder)
 
             M.logout()
 
@@ -164,8 +163,8 @@ if __name__ == '__main__':
                 unseen = new_unseen
 
             if new_unseen != unseen:
-                signal('{num} Unseen email(s) in [{updated_folders}]'\
-                        .format(num=new_unseen, updated_folders=updated_folders))
+                signal('{num} Unseen email(s) in {folders} folder(s)'\
+                        .format(num=new_unseen, folders=len(updated_folders)))
                 unseen = new_unseen
 
 
