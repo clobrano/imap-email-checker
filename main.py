@@ -3,19 +3,14 @@
 # vi: set ft=python :
 '''
 Usage:
-    ./imap-email-checker [--config=PATH] [--email=ACCOUNT_ADDRESS] [--imap=IMAP_SERVER_ADDRESS] [(--notify=on | --notify=off)] [--pass=PASSWORD] [--time=MIN] [--debug]
+    ./imap-email-checker [--config=PATH]
 
 Options:
     -h --help                   Show this screen
-    --email=ACCOUNT_ADDRESS     E-mail address
-    --imap=IMAP_SERVER_ADDRESS  Server imap address
-    --pass=PASSWORD             User's password
-    --time=MIN                  Minutes between checks
-    --notify=on|off             Enable/disable notify (uses libnotify). Default is on
-    --debug                     Enable debug (stdout)
     --config=PATH               Path to configuration file [default: ~/.imap-checker]
 '''
 
+import sys
 import os
 import re
 import imaplib
@@ -23,13 +18,14 @@ import json
 import logging
 import webbrowser
 
+from docopt import docopt
 import notify2 as pynotify
 import gi
 gi.require_version('GLib', '2.0')
 from gi.repository import GLib
 
 logging.basicConfig(level=logging.DEBUG,
-                    format='%(levelname)s %(funcName)s: %(message)s')
+                    format='%(levelname)s %(message)s')
 LOG = logging.getLogger(__name__)
 
 
@@ -41,7 +37,18 @@ def get_configuration(filepath: str) -> str:
         configuration = json.loads(configuration_str)
     except IOError as io_error:
         configuration = {}
-        print("Could not find configuration file: ", io_error)
+        LOG.error('could not read configuration file: %s', io_error)
+        print('configuration file is needed with the following format:')
+        print('''{
+    "email": "name.surname@company.com",
+    "server": "imap-server.com",
+    "password": "xxxx",
+    "time": "120",
+    "notify": "on",
+    "browser_url": ""
+    "folders": ["INBOX", "Do not remove INBOX", "Another Folder"]
+}''')
+    sys.exit(1)
 
     return configuration
 
@@ -109,7 +116,9 @@ def check_emails(account: dict) -> bool:
 
 def main():
     '''Main function'''
-    config_file = os.path.expanduser(os.path.join('~', '.imap-checker'))
+    arguments = docopt(__doc__)
+    print(arguments)
+    config_file = os.path.expanduser(arguments['--config'])
     account = get_configuration(config_file)
     account['unseen'] = 0
 
