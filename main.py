@@ -117,7 +117,6 @@ def check_emails(account: dict) -> bool:
 def main():
     '''Main function'''
     arguments = docopt(__doc__)
-    print(arguments)
     config_file = os.path.expanduser(arguments['--config'])
     account = get_configuration(config_file)
     account['unseen'] = 0
