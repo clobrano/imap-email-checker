@@ -26,7 +26,7 @@ import os
 import socket
 
 
-def get_configuration(configuration_fullpath):
+def get_configuration(configuration_fullpath: str) -> str:
     try:
         with open(configuration_fullpath, 'r') as c:
             configuration_str = c.read()

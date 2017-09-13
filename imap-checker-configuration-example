@@ -2,7 +2,8 @@
     "email": "name.surname@company.com",
     "server": "imap-server.com",
     "password": "xxxx",
-    "time": "1",
+    "time": "120",
     "notify": "on",
+    "browser_url": ""
     "folders": ["INBOX", "Do not remove INBOX", "Another Folder"]
 }
