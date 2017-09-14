@@ -138,8 +138,7 @@ def main():
     check_emails(account)
 
     mainloop = GLib.MainLoop()
-    event_id = GLib.timeout_add_seconds(
-        interval=int(account['time']), function=check_emails, data=account)
+    event_id = GLib.timeout_add_seconds(int(account['time']), check_emails, account)
 
     if not event_id:
         LOG.fatal('could not setup e-mail checker function')
