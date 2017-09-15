@@ -53,31 +53,35 @@ def get_configuration(filepath: str) -> str:
     return configuration
 
 
-def open_browser_cb(notification, action: str, url: str):
-    '''Open Outlook web page'''
-    webbrowser.open_new_tab(url)
+def ignore_cb(notification, action: str):
+    '''Ignore notification'''
+    notification.set_data('ignore', True)
+    notification.close()
+
+
+def open_browser_cb(notification):
+    '''Open notification in browser'''
+    if not notification.get_data('ignore'):
+        url = notification.get_data('browser_url')
+        webbrowser.open_new_tab(url)
     notification.close()
 
 
 def check_emails(account: dict) -> bool:
     '''Check unseen emails'''
-    server = account['server']
-    email = account['email']
-    password = account['password']
-    folders = account['folders']
+    conn = imaplib.IMAP4_SSL(account['server'])
 
-    conn = imaplib.IMAP4_SSL(server)
-
-    ret, _ = conn.login(email, password)
+    ret, _ = conn.login(account['email'], account['password'])
 
     if ret != 'OK':
-        LOG.fatal('could not log-in into account %s: %s', email, ret)
+        LOG.fatal('could not log-in into account %s: %s', account['email'],
+                  ret)
 
         return GLib.SOURCE_REMOVE
 
     report = dict()
 
-    for folder in folders:
+    for folder in account['folders']:
         ret, _ = conn.select(folder)
 
         if ret != 'OK':
@@ -116,8 +120,16 @@ def check_emails(account: dict) -> bool:
             message = '{} unseen e-mails'.format(unseen)
             icon = '/usr/share/icons/Adwaita/scalable/status/mail-unread-symbolic.svg'
             notification = pynotify.Notification('PyEmail', message, icon)
-            notification.add_action('accept', 'Open in browser',
-                                    open_browser_cb, account['browser_url'])
+            notification.set_timeout(pynotify.EXPIRES_NEVER)
+
+            server_capabilities = pynotify.get_server_caps()
+
+            if 'actions' in server_capabilities:
+                notification.add_action('close', 'Close', ignore_cb)
+                notification.set_data('browser_url', account['browser_url'])
+                notification.set_data('ignore', False)
+                notification.connect('closed', open_browser_cb)
+
             notification.show()
 
     return GLib.SOURCE_CONTINUE
@@ -138,7 +150,8 @@ def main():
     check_emails(account)
 
     mainloop = GLib.MainLoop()
-    event_id = GLib.timeout_add_seconds(int(account['time']), check_emails, account)
+    event_id = GLib.timeout_add_seconds(
+        int(account['time']), check_emails, account)
 
     if not event_id:
         LOG.fatal('could not setup e-mail checker function')
