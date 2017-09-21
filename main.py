@@ -25,8 +25,15 @@ import gi
 gi.require_version('GLib', '2.0')
 from gi.repository import GLib
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
-LOG = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(levelname)s %(message)s')
+SYSLOG = logging.FileHandler(filename='/tmp/pyemail.log', mode='w')
+SYSLOG.setLevel(logging.WARNING)
+FORMATTER = logging.Formatter('%(asctime)s %(name)-12s %(levelname)s %(message)s')
+SYSLOG.setFormatter(FORMATTER)
+logging.getLogger('').addHandler(SYSLOG)
+LOG = logging.getLogger('pyemail')
 
 
 def get_configuration(filepath: str) -> str:
